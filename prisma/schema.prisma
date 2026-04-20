@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String        @id @default(cuid())
+  nom        String
+  prenom     String
+  email      String        @unique
+  password   String
+  role       Role          @default(AGENT)
+  isActive   Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  paiements     Paiement[]
+  residences    Residence[]    @relation("AgentResidences")
+  logs          ActivityLog[]
+  notifications Notification[]
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entite    String
+  entiteId  String?
+  entiteNom String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+model Proprietaire {
+  id          String      @id @default(cuid())
+  nom         String
+  telephone   String
+  ville       String      @default("BOUAKE")
+  observation String?
+  createdAt   DateTime    @default(now())
+  residences  Residence[]
+}
+
+model Residence {
+  id             String        @id @default(cuid())
+  quartier       String
+  ville          String        @default("BOUAKE")
+  ilot           String?
+  localisation   String?
+  observation    String?
+  proprietaireId String
+  agentId        String?
+  createdAt      DateTime      @default(now())
+  appartements   Appartement[]
+  agent          User?         @relation("AgentResidences", fields: [agentId], references: [id])
+  proprietaire   Proprietaire  @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
+}
+
+model Appartement {
+  id          String            @id @default(cuid())
+  libelle     String
+  nbrePieces  Int               @default(1)
+  loyer       Int
+  taux        Int               @default(10)
+  statut      StatutAppartement @default(LIBRE)
+  residenceId String
+  createdAt   DateTime          @default(now())
+  residence   Residence         @relation(fields: [residenceId], references: [id], onDelete: Cascade)
+  locataires  Locataire[]
+}
+
+model Locataire {
+  id            String          @id @default(cuid())
+  nom           String
+  fonction      String?
+  typePiece     String?
+  numPiece      String?
+  nationalite   String?
+  telephone     String?
+  loyer         Int
+  arriere       Int             @default(0)
+  statut        StatutLocataire @default(ACTIF)
+  observation   String?
+  dateEntree    DateTime        @default(now())
+  dateDepart    DateTime?
+  motifDepart   String?
+  appartementId String
+  createdAt     DateTime        @default(now())
+  appartement   Appartement     @relation(fields: [appartementId], references: [id])
+  paiements     Paiement[]
+}
+
+model Paiement {
+  id             String    @id @default(cuid())
+  montant        Int
+  montantLettres String?
+  mois           Int
+  moisLibelle    String
+  annee          Int
+  motif          String    @default("Loyer")
+  reste          Int       @default(0)
+  observation1   String?
+  observation2   String?
+  observation3   String?
+  locataireId    String
+  agentId        String
+  datePaiement   DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  agent          User      @relation(fields: [agentId], references: [id])
+  locataire      Locataire @relation(fields: [locataireId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  titre     String
+  message   String
+  type      String
+  lien      String?
+  lue       Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  AGENT
+  COMPTABLE
+}
+
+enum StatutLocataire {
+  ACTIF
+  PARTI
+}
+
+enum StatutAppartement {
+  LIBRE
+  OCCUPE
+}
